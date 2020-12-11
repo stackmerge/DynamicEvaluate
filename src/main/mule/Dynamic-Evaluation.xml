@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:s3="http://www.mulesoft.org/schema/mule/s3" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="611a1bb1-ab71-44a9-b61b-a0403688db1b" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<s3:config name="Amazon_S3_Configuration" doc:name="Amazon S3 Configuration" doc:id="eeed5faf-6c11-4cf7-9f78-fc360156b420" >
+		<s3:basic-connection accessKey="AKIAJSKMK57A3LW4A4PQ" secretKey="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" region="AP_SOUTH_1"/>
+	</s3:config>
+	<flow name="Dynamic-EvaluationFlow" doc:id="d68d8019-d62f-4249-8c87-cb9a431b5b2f" >
+		<http:listener doc:name="POST /dynamic" doc:id="a6b7b8c1-ac90-4330-b354-c7347a04d454" config-ref="HTTP_Listener_config" path="/dynamic"/>
+		<set-variable value="#[lower (attributes.queryParams.'sourceSystem')]" doc:name="sourceSystem" doc:id="8a9caa03-4702-489d-b3a1-5c3a3612d294" variableName="sourceSystem"/>
+		<s3:get-object doc:name="Get object" doc:id="c6a6b780-dce8-472c-9d17-c37e12c5cd3d" config-ref="Amazon_S3_Configuration" bucketName="dynamic-evaluate1" key="#[(vars.sourceSystem default &quot;&quot;) ++ '.dwl']" target="dataweaveScript"/>
+		<ee:dynamic-evaluate doc:name="Dynamic Evaluate" doc:id="e7dd46b2-4b7a-4b76-9964-eef6a38c5fcc" expression="#[vars.dataweaveScript]"/>
+<choice doc:name="Choice" doc:id="0adddb6b-c229-4ea7-b130-563697f941b1" >
+			<when expression='#[vars.sourceSystem == "salesforce"]'>
+				<logger level="INFO" doc:name="Salesforce" doc:id="f378bfbb-9f78-4948-8cbe-1cd5067cf7a3" message='#["Sending logs to Salesforce"]'/>
+			</when>
+			<when expression='#[vars.sourceSystem == "mulesoft"]'>
+				<logger level="INFO" doc:name="Mulesoft" doc:id="fb217e74-d67e-491c-9d06-3917496edbcc" message='#["Sending logs to Mulesoft"]'/>
+			</when>
+			<otherwise >
+				<raise-error doc:name="Raise error" doc:id="3abacf57-ac3d-4e3d-8786-ef3244f2d101" type="CHECKPOINT:INVALIDAPP" description="Invalid application"/>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
